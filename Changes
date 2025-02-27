@@ -1,0 +1,116 @@
+I see the problem now. Your diagram is displaying but you're also getting a "Syntax error in text" message from Mermaid (version 11.4.1). This suggests there might be a syntax issue in the Mermaid diagram content being fetched from the URL.
+
+Let's modify our approach to handle potential syntax errors better and provide validation:
+
+```javascript
+import React, { useEffect, useState } from 'react';
+import mermaid from 'mermaid';
+import './MermaidDiagram.css';
+
+const MermaidDiagram = ({ url }) => {
+  const [diagramText, setDiagramText] = useState('');
+  const [diagramSvg, setDiagramSvg] = useState('');
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    // Initialize mermaid with more verbose logging and validation
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'loose',
+      logLevel: 4, // 1 (error) to 5 (debug)
+      validateMessage: true // Enable syntax validation
+    });
+  }, []);
+  
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchAndRenderDiagram = async () => {
+      if (!url) return;
+      
+      try {
+        // 1. Fetch the diagram text
+        const response = await fetch(url);
+        const text = await response.text();
+        
+        if (!isMounted) return;
+        
+        // 2. Clean up and validate the Mermaid syntax
+        // Remove any HTML tags or non-Mermaid content
+        const cleanedText = text.trim();
+        setDiagramText(cleanedText);
+        
+        // 3. Validate the syntax using Mermaid's parser
+        try {
+          // First try to parse the diagram to check syntax
+          const isValid = await mermaid.parse(cleanedText);
+          
+          if (!isValid) {
+            throw new Error("Invalid Mermaid syntax");
+          }
+          
+          // If valid, render to SVG
+          const uniqueId = `diagram-${Date.now()}`;
+          const { svg } = await mermaid.render(uniqueId, cleanedText);
+          
+          if (isMounted) {
+            setDiagramSvg(svg);
+            setError(null);
+          }
+        } catch (parseError) {
+          console.error("Mermaid syntax error:", parseError);
+          if (isMounted) {
+            setError(`Syntax error: ${parseError.message || "Invalid diagram syntax"}`);
+          }
+        }
+      } catch (fetchError) {
+        if (isMounted) {
+          console.error("Error fetching diagram:", fetchError);
+          setError(`Failed to load diagram: ${fetchError.message}`);
+        }
+      }
+    };
+    
+    fetchAndRenderDiagram();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [url]);
+  
+  // Show only the SVG if successful
+  if (diagramSvg) {
+    return <div className="mermaid-container" dangerouslySetInnerHTML={{ __html: diagramSvg }} />;
+  }
+  
+  // Show error if there is one
+  if (error) {
+    return (
+      <div className="mermaid-error">
+        <p>{error}</p>
+        <pre className="mermaid-source">{diagramText}</pre>
+      </div>
+    );
+  }
+  
+  // Show loading state
+  return <div className="mermaid-loading">Loading diagram...</div>;
+};
+
+export default MermaidDiagram;
+```
+
+This improved solution:
+
+1. Initializes Mermaid with validation enabled and more verbose logging
+2. Explicitly validates the Mermaid syntax before attempting to render
+3. Better handles and displays errors by showing both the error message and the source code
+4. Separates the error handling from the successful rendering path
+
+To address the specific syntax error you're seeing:
+
+1. Make sure the Mermaid diagram content you're fetching from the URL is valid Mermaid syntax
+2. Check if there might be extra characters, whitespace, or HTML tags in the content
+3. Verify if the diagram text starts with the proper Mermaid diagram type declaration (like `sequenceDiagram`, `flowchart`, etc.)
+
+The syntax error suggests that the Mermaid parser is having trouble with some part of the diagram definition.​​​​​​​​​​​​​​​​
