@@ -1,57 +1,9 @@
-import os
-import requests
-
-def call_api_get_message(data):
-    try:
-        BASE_URL = "your_base_url_here"
-        url = f"{BASE_URL}/process_document"
-        api_key = os.environ.get("env_937528_api_key")
-        headers = {'X-apikey': api_key, 'Content-Type': 'application/json'}
-        response = requests.post(url, headers=headers, json=data, verify=False)
-        response.raise_for_status()
-        data = response.json()
-        return data
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling the first API: {e}")
-        return None
-    except KeyError:
-        print("Error: env_937528_api_key not set.")
-        return None
-
-def verify_document(document_data):
-    try:
-        VERIFICATION_API_URL = "your_verification_api_url_here"
-        VERIFICATION_API_KEY = os.environ.get("VERIFICATION_API_KEY")
-        if not VERIFICATION_API_KEY:
-            print("Error: VERIFICATION_API_KEY not set.")
-            return {"verified": False, "error": "Verification API key missing"}
-        verification_headers = {'X-apikey': VERIFICATION_API_KEY, 'Content-Type': 'application/json'}
-        verification_data = {
-            "document_id": document_data.get("document_id"),
-            "field1": document_data.get("field1"),
-        }
-        verification_response = requests.post(VERIFICATION_API_URL, headers=verification_headers, json=verification_data)
-        verification_response.raise_for_status()
-        verification_result = verification_response.json()
-        if verification_result.get("verified"):
-            return {"verified": True, "message": "Document verified"}
+def customer_validation(customer_name, mobile_number):
+    customer_data = os.environ.get("env_201615_customer")
+    if customer_data:
+        if (customer_name, mobile_number) in customer_data:
+            return f"Customer {customer_name} with mobile {mobile_number} is valid."
         else:
-            return {"verified": False, "message": "Document verification failed", "details": verification_result.get("error")}
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling the verification API: {e}")
-        return {"verified": False, "error": str(e)}
-    except KeyError:
-        print("Error: Verification API key not set.")
-        return {"verified": False, "error": "Verification API key missing"}
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return {"verified": False, "error": "An unexpected error occurred"}
-
-if __name__ == "__main__":
-    test_data = {"some_data": "value"}
-    first_api_response = call_api_get_message(test_data)
-    if first_api_response:
-        verification_result = verify_document(first_api_response)
-        print(verification_result)
+            return f"Customer {customer_name} with mobile {mobile_number} is not valid."
     else:
-        print("Failed to get response from the first API.")
+        return "Customer data not found. Validation failed."
