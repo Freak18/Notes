@@ -1,46 +1,109 @@
 import React, { useState, useEffect } from 'react';
 import ReactFlow, { 
-  ReactFlowProvider, 
   Controls, 
-  Background 
-} from 'react-flow-renderer';
+  Background, 
+  useNodesState, 
+  useEdgesState,
+  Position
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import './NewKibanaDisplay.css';
 
-const NewKibanaDisplay = () => {
-  const [apiUris, setApiUris] = useState([]);
+const NewKibanaDisplay = ({ url }) => {
+  const [nodes, setNodes] = useNodesState([]);
+  const [edges, setEdges] = useEdgesState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch(url);
+      const jsonData = await response.json();
+
+      // Create parent node
+      const parentNode = {
+        id: 'parent',
+        type: 'default',
+        position: { x: 250, y: 50 },
+        data: { label: 'fetchCartItems' },
+        style: { width: 150, textAlign: 'center' }
+      };
+
+      // Create child nodes horizontally
+      const childNodes = jsonData.data.map((item, index) => ({
+        id: `node-${index}`,
+        type: 'default',
+        position: { 
+          x: 100 + (index * 200), // Evenly distribute horizontally
+          y: 200 
+        },
+        data: { label: `${index + 1}` },
+        style: { 
+          width: 50, 
+          height: 50, 
+          borderRadius: '50%', 
+          backgroundColor: '#f0f0f0', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }
+      }));
+
+      // Create edges connecting parent to children
+      const childEdges = childNodes.map(childNode => ({
+        id: `edge-${childNode.id}`,
+        source: 'parent',
+        target: childNode.id,
+        type: 'straight'
+      }));
+
+      // Combine and set nodes and edges
+      setNodes([parentNode, ...childNodes]);
+      setEdges(childEdges);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setLoading(false);
+    }
+  };
+
+  // Handle node click to add more nodes
+  const handleNodeClick = (event, node) => {
+    if (node.id === 'parent') {
+      const newNodes = nodes.map((prevNode, index) => {
+        // Add horizontal nodes to the right of clicked node
+        if (prevNode.id === 'parent') return prevNode;
+        return {
+          ...prevNode,
+          position: { 
+            x: prevNode.position.x + 50, 
+            y: prevNode.position.y + 50 
+          }
+        };
+      });
+
+      setNodes(newNodes);
+    }
+  };
 
   useEffect(() => {
-    fetch(url)
-      .then((response) => response.json())
-      .then((data) => {
-        const apiNodes = data.data.map((item, index) => ({
-          id: `node-${index}`,
-          data: { label: item.api_Uri },
-          position: { x: 100, y: index * 100 }
-        }));
+    fetchData();
+  }, [url]);
 
-        const edges = apiNodes.slice(0, -1).map((node, index) => ({
-          id: `edge-${index}`,
-          source: node.id,
-          target: apiNodes[index + 1].id
-        }));
-
-        setApiUris({ nodes: apiNodes, edges });
-      })
-      .catch((error) => console.error("Error fetching data:", error));
-  }, []);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div style={{ height: '500px', width: '100%' }}>
-      <ReactFlowProvider>
-        <ReactFlow
-          nodes={apiUris.nodes}
-          edges={apiUris.edges}
-          fitView
-        >
-          <Controls />
-          <Background />
-        </ReactFlow>
-      </ReactFlowProvider>
+    <div className="reactflow-container" style={{ height: '400px' }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodeClick={handleNodeClick}
+        fitView
+      >
+        <Controls />
+        <Background variant="dots" gap={12} size={1} />
+      </ReactFlow>
     </div>
   );
 };
