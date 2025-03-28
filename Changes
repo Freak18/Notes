@@ -1,23 +1,27 @@
-import React, { useEffect, useState } from "react";
-import ReactFlow, { Handle } from "react-flow-renderer";
+import React, { useState, useEffect } from 'react';
+import ReactFlow, { 
+  ReactFlowProvider, 
+  Controls, 
+  Background 
+} from 'react-flow-renderer';
 
 const NewKibanaDisplay = () => {
   const [apiUris, setApiUris] = useState([]);
 
   useEffect(() => {
-    fetch("YOUR_JSON_URL_HERE") // Replace with your actual URL
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
         const apiNodes = data.data.map((item, index) => ({
           id: `node-${index}`,
           data: { label: item.api_Uri },
-          position: { x: 100, y: index * 100 }, // Arrange in vertical flow
+          position: { x: 100, y: index * 100 }
         }));
 
-        const edges = apiNodes.slice(1).map((node, index) => ({
+        const edges = apiNodes.slice(0, -1).map((node, index) => ({
           id: `edge-${index}`,
-          source: `node-${index}`,
-          target: `node-${index + 1}`,
+          source: node.id,
+          target: apiNodes[index + 1].id
         }));
 
         setApiUris({ nodes: apiNodes, edges });
@@ -26,8 +30,17 @@ const NewKibanaDisplay = () => {
   }, []);
 
   return (
-    <div style={{ height: "500px", width: "100%" }}>
-      <ReactFlow nodes={apiUris.nodes} edges={apiUris.edges} />
+    <div style={{ height: '500px', width: '100%' }}>
+      <ReactFlowProvider>
+        <ReactFlow
+          nodes={apiUris.nodes}
+          edges={apiUris.edges}
+          fitView
+        >
+          <Controls />
+          <Background />
+        </ReactFlow>
+      </ReactFlowProvider>
     </div>
   );
 };
