@@ -1,57 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from "react";
+import ReactFlow, { Handle } from "react-flow-renderer";
 
 const NewKibanaDisplay = () => {
-  const [apiFlow, setApiFlow] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [apiUris, setApiUris] = useState([]);
 
   useEffect(() => {
-    const fetchApiFlow = async () => {
-      try {
-        // Replace with your actual URL
-        const response = await fetch('your-api-endpoint-url');
-        const data = await response.json();
-        
-        // Extract API URIs from the data array
-        const apiUris = data.data.map(item => item.api_Uri);
-        setApiFlow(apiUris);
-        setIsLoading(false);
-      } catch (err) {
-        setError(err);
-        setIsLoading(false);
-      }
-    };
+    fetch("YOUR_JSON_URL_HERE") // Replace with your actual URL
+      .then((response) => response.json())
+      .then((data) => {
+        const apiNodes = data.data.map((item, index) => ({
+          id: `node-${index}`,
+          data: { label: item.api_Uri },
+          position: { x: 100, y: index * 100 }, // Arrange in vertical flow
+        }));
 
-    fetchApiFlow();
+        const edges = apiNodes.slice(1).map((node, index) => ({
+          id: `edge-${index}`,
+          source: `node-${index}`,
+          target: `node-${index + 1}`,
+        }));
+
+        setApiUris({ nodes: apiNodes, edges });
+      })
+      .catch((error) => console.error("Error fetching data:", error));
   }, []);
 
-  // Generate Mermaid flowchart markup
-  const generateMermaidFlowChart = () => {
-    return `
-      graph TD
-        ${apiFlow.map((uri, index) => 
-          index < apiFlow.length - 1 
-            ? `${uri.replace(/[^a-zA-Z0-9]/g, '_')}["${uri}"] --> ${apiFlow[index + 1].replace(/[^a-zA-Z0-9]/g, '_')}["${apiFlow[index + 1]}"]`
-            : `${uri.replace(/[^a-zA-Z0-9]/g, '_')}["${uri}"]`
-        ).join('\n        ')}
-    `;
-  };
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error loading data: {error.message}</div>;
-
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>API Flow Chart</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mermaid">
-          {generateMermaidFlowChart()}
-        </div>
-      </CardContent>
-    </Card>
+    <div style={{ height: "500px", width: "100%" }}>
+      <ReactFlow nodes={apiUris.nodes} edges={apiUris.edges} />
+    </div>
   );
 };
 
