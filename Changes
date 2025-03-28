@@ -1,9 +1,58 @@
-def customer_validation(customer_name, mobile_number):
-    customer_data = os.environ.get("env_201615_customer")
-    if customer_data:
-        if (customer_name, mobile_number) in customer_data:
-            return f"Customer {customer_name} with mobile {mobile_number} is valid."
-        else:
-            return f"Customer {customer_name} with mobile {mobile_number} is not valid."
-    else:
-        return "Customer data not found. Validation failed."
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+const NewKibanaDisplay = () => {
+  const [apiFlow, setApiFlow] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchApiFlow = async () => {
+      try {
+        // Replace with your actual URL
+        const response = await fetch('your-api-endpoint-url');
+        const data = await response.json();
+        
+        // Extract API URIs from the data array
+        const apiUris = data.data.map(item => item.api_Uri);
+        setApiFlow(apiUris);
+        setIsLoading(false);
+      } catch (err) {
+        setError(err);
+        setIsLoading(false);
+      }
+    };
+
+    fetchApiFlow();
+  }, []);
+
+  // Generate Mermaid flowchart markup
+  const generateMermaidFlowChart = () => {
+    return `
+      graph TD
+        ${apiFlow.map((uri, index) => 
+          index < apiFlow.length - 1 
+            ? `${uri.replace(/[^a-zA-Z0-9]/g, '_')}["${uri}"] --> ${apiFlow[index + 1].replace(/[^a-zA-Z0-9]/g, '_')}["${apiFlow[index + 1]}"]`
+            : `${uri.replace(/[^a-zA-Z0-9]/g, '_')}["${uri}"]`
+        ).join('\n        ')}
+    `;
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error loading data: {error.message}</div>;
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>API Flow Chart</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mermaid">
+          {generateMermaidFlowChart()}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default NewKibanaDisplay;
