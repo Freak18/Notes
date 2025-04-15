@@ -4,17 +4,8 @@ import { AlternateCheckMark, ToolTip } from '@vds/components';
 
 const StepperContainer = styled.div`
   position: relative;
-  margin: 20px 0;
-`;
-
-const StepLine = styled.div`
-  position: absolute;
-  top: 20px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: black;
-  z-index: 1;
+  margin: 40px 0;
+  padding: 0 20px;
 `;
 
 const StepWrapper = styled.div`
@@ -32,19 +23,40 @@ const StepGroup = styled.div`
   padding: 10px 20px;
 `;
 
+const NameText = styled.div`
+  margin: 0 10px;
+  font-weight: 500;
+  white-space: nowrap;
+`;
+
 const TooltipWrapper = styled.div`
   margin: 0 10px;
   display: flex;
   align-items: center;
 `;
 
+// Positioned line only between first and last checkmark
+const StepLine = styled.div`
+  position: absolute;
+  top: 28px; // adjust based on checkmark vertical alignment
+  left: ${({ startPercent }) => startPercent}%;
+  right: ${({ endPercent }) => endPercent}%;
+  height: 2px;
+  background-color: black;
+  z-index: 1;
+`;
+
 function Stepper({ steps }) {
-  // Logic to highlight the first group as active
   const activeStepIndex = steps.findIndex(step => step.inProgress);
+  const totalSteps = steps.length;
+
+  // calculate horizontal line start and end
+  const startPercent = (100 / totalSteps) / 2;
+  const endPercent = (100 / totalSteps) / 2;
 
   return (
     <StepperContainer>
-      <StepLine />
+      <StepLine startPercent={startPercent} endPercent={startPercent} />
       <StepWrapper>
         {steps.map((step, index) => {
           const { completed, inProgress, children } = step;
@@ -53,19 +65,12 @@ function Stepper({ steps }) {
           return (
             <StepGroup key={index} active={isActiveGroup}>
               <AlternateCheckMark completed={completed} inProgress={inProgress} />
-              <TooltipWrapper>
-                <ToolTip content={step.name} />
-              </TooltipWrapper>
+              <NameText>{step.name}</NameText>
+
               {children?.map((child, childIndex) => (
-                <React.Fragment key={childIndex}>
-                  <AlternateCheckMark
-                    completed={child.completed}
-                    inProgress={child.inProgress}
-                  />
-                  <TooltipWrapper>
-                    <ToolTip content={child.name} />
-                  </TooltipWrapper>
-                </React.Fragment>
+                <TooltipWrapper key={childIndex}>
+                  <ToolTip content={child.name} />
+                </TooltipWrapper>
               ))}
             </StepGroup>
           );
