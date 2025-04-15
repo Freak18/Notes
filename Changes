@@ -8,59 +8,49 @@ const StepperContainer = styled.div`
   position: relative;
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   margin: 40px 0;
 `;
 
 const StepWrapper = styled.div`
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
-`;
-
-const StepName = styled.span`
-  margin-bottom: 8px;
-  font-weight: ${(props) => (props.inProgress ? 'bold' : 'normal')};
-`;
-
-const CheckmarkWrapper = styled.div`
   position: relative;
-  z-index: 2;
+  text-align: center;
 `;
 
 const StepConnector = styled.div`
   position: absolute;
-  top: 16px;
+  top: 28px;
   left: 0;
   right: 0;
   height: 2px;
   background-color: black;
+  z-index: 0;
+`;
+
+const StepName = styled.span`
+  font-weight: ${({ inProgress }) => (inProgress ? 'bold' : 'normal')};
+  margin-bottom: 8px;
+`;
+
+const IconWrapper = styled.div`
+  position: relative;
   z-index: 1;
-`;
-
-const ChildStepsWrapper = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 10px;
-  z-index: 3;
-`;
-
-const ChildStep = styled.div`
-  margin: 0 4px;
 `;
 
 const ChildStepIcon = styled.div`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${(props) =>
-    props.inProgress ? '#000000' : props.completed ? '#059669' : '#cbd5e1'};
+  background-color: ${({ inProgress, completed }) =>
+    inProgress ? '#000000' : completed ? '#059669' : '#cbd5e1'};
 `;
 
-// Stepper Component
+// Component
 function Stepper({ steps, show = true }) {
   return (
     <>
@@ -69,40 +59,37 @@ function Stepper({ steps, show = true }) {
           <StepConnector />
           {steps.map((step, index) => (
             <StepWrapper key={index}>
-              {/* Step Name Above */}
+              {/* Step Name */}
               <StepName inProgress={step.inProgress}>{step.name}</StepName>
 
-              {/* Checkmark */}
-              <CheckmarkWrapper>
-                <AlternateCheckmark
-                  color={step.inProgress ? '#008331' : '#D8DADA'}
-                  size="24px"
-                  surface="light"
-                />
-              </CheckmarkWrapper>
-
-              {/* Tooltips for Child Steps */}
-              {step.children && step.children.length > 0 && (
-                <ChildStepsWrapper>
-                  {step.children.map((childStep, childIndex) => (
-                    <ChildStep key={childIndex}>
-                      <Tooltip
-                        renderAnchorElement={() => (
-                          <ChildStepIcon
-                            inProgress={childStep.inProgress}
-                            completed={childStep.completed}
-                          />
-                        )}
-                        size="small"
-                        tooltipSize="small"
-                        surface="light"
-                      >
-                        {childStep.name}
-                      </Tooltip>
-                    </ChildStep>
-                  ))}
-                </ChildStepsWrapper>
-              )}
+              {/* Checkmark or Step Icon */}
+              <IconWrapper>
+                {step.completed ? (
+                  <AlternateCheckmark
+                    color={step.inProgress ? '#008331' : '#D8DADA'}
+                    size="24px"
+                    surface="light"
+                  />
+                ) : (
+                  <Tooltip
+                    renderAnchorElement={() => (
+                      <ChildStepIcon
+                        inProgress={step.inProgress}
+                        completed={step.completed}
+                      />
+                    )}
+                    size="small"
+                    tooltipSize="small"
+                    surface="light"
+                  >
+                    <div>
+                      {step.children?.map((child, idx) => (
+                        <div key={idx}>{child.name}</div>
+                      ))}
+                    </div>
+                  </Tooltip>
+                )}
+              </IconWrapper>
             </StepWrapper>
           ))}
         </StepperContainer>
