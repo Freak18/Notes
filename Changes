@@ -1,177 +1,119 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import AlternateCheckmark from '@wds/icons/alternate-checkmark';
-import { Tooltip } from '@wds/tooltips';
 
-// Styled Components
 const StepperContainer = styled.div`
   position: relative;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 50px;
-  background-color: 'blue';
+  margin: 24px 0;
 `;
 
-const StepBlock = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  padding: 10px 0;
-  border-radius: 8px;
-  background-color: ${props => props.inProgress ? '#f0f4ff' : 'transparent'};
+const StepLine = styled.div`
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: black;
+  z-index: 0;
+`;
+
+const HighlightedBackground = styled.div`
+  position: absolute;
+  height: 4px;
+  background-color: ${({ isActive }) => (isActive ? '#D6F0FF' : 'transparent')};
+  top: 17px;
+  z-index: 0;
+  left: ${({ left }) => left}%;
+  width: ${({ width }) => width}%;
 `;
 
 const StepWrapper = styled.div`
-  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  flex: 1;
-  max-width: 150px;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
 `;
 
-const StepName = styled.span`
-  margin-top: 10px;
-  font-weight: ${props => (props.inProgress ? 'bold' : 'normal')};
-  text-align: center;
-  font-size: 12px;
+const StepGroup = styled.div`
+  display: flex;
+  align-items: center;
+  position: relative;
+`;
+
+const StepCircle = styled.div`
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: ${({ completed }) => (completed ? 'green' : 'white')};
+  border: 2px solid ${({ inProgress }) => (inProgress ? 'blue' : 'black')};
+`;
+
+const StepLabel = styled.div`
+  margin-left: 8px;
+  margin-right: 24px;
+  font-weight: ${({ inProgress }) => (inProgress ? 'bold' : 'normal')};
   white-space: nowrap;
 `;
 
-const CheckmarkWrapper = styled.div`
+const Tooltip = styled.div`
+  margin: 0 12px;
+  font-size: 12px;
+  color: gray;
   position: relative;
-  margin-top: -25px;
-  margin-bottom: 0;
-  z-index: 2;
+  top: 24px;
+  white-space: nowrap;
 `;
 
-const StepConnector = styled.div`
-  position: absolute;
-  top: 50%;
-  height: 4px;
-  width: 100%;
-  background-color: black;
-  z-index: 1;
-`;
+const Stepper = ({ steps }) => {
+  const totalPoints = steps.reduce((acc, step) => acc + (step.children?.length || 0) + 1, 0);
 
-const ChildStepWrapper = styled.div`
-  position: absolute;
-  top: 50%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transform: translateY(-50%);
-  z-index: 2;
-  gap: 12px;
-`;
-
-const ChildStep = styled.div`
-  position: relative;
-  margin: 0 15px;
-`;
-
-const ChildStepIcon = styled.div`
-  width: 8px;
-  height: 8px;
-  background-color: ${props => props.completed ? '#059669' : props.inProgress ? '#000000' : '#d1d5db'};
-  border-radius: 50%;
-`;
-
-const ChildStepName = styled.div`
-  font-size: 10px;
-  margin-top: 4px;
-  text-align: center;
-`;
-
-// Stepper Component
-function Stepper({ steps, show = true }) {
-  const containerRef = useRef(null);
-  const [connectorStyle, setConnectorStyle] = useState({ left: 0, right: 0 });
-  const [childWrapperStyles, setChildWrapperStyles] = useState([]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const stepWrappers = containerRef.current.querySelectorAll('.step-wrapper');
-    if (stepWrappers.length < 2) return;
-
-    const firstStep = stepWrappers[0].getBoundingClientRect();
-    const lastStep = stepWrappers[stepWrappers.length - 1].getBoundingClientRect();
-    const container = containerRef.current.getBoundingClientRect();
-
-    setConnectorStyle({
-      left: firstStep.left - container.left + firstStep.width / 2,
-      right: container.right - lastStep.right + lastStep.width / 2,
-    });
-
-    const childStyles = Array.from(stepWrappers).map((wrapper, index) => {
-      if (index < stepWrappers.length - 1) {
-        const currentStep = wrapper.getBoundingClientRect();
-        const nextStep = stepWrappers[index + 1].getBoundingClientRect();
-        return {
-          left: currentStep.right - container.left,
-          width: nextStep.left - currentStep.right
-        };
-      }
-      return null;
-    });
-
-    setChildWrapperStyles(childStyles);
-  }, [steps]);
+  // Compute the percentage position of each point
+  let currentPointIndex = 0;
 
   return (
-    <StepperContainer ref={containerRef}>
-      <StepConnector style={connectorStyle} />
+    <StepperContainer>
+      <StepLine />
 
-      {steps.map((step, index) => (
-        <StepBlock key={index} inProgress={step.inProgress}>
-          <StepWrapper className="step-wrapper" inProgress={step.inProgress}>
-            <StepName inProgress={step.inProgress}>{step.name}</StepName>
-            <CheckmarkWrapper>
-              <AlternateCheckmark
-                color={step.inProgress ? '#008231' : '#DDDDDD'}
-                size="24px"
-                surface="light"
-                style={{ position: 'relative' }}
-              />
-            </CheckmarkWrapper>
-          </StepWrapper>
+      {steps.map((step, stepIndex) => {
+        const isActiveGroup = step.inProgress;
+        const groupPoints = (step.children?.length || 0) + 1;
+        const startPercent = (currentPointIndex / (totalPoints - 1)) * 100;
+        const endPercent = ((currentPointIndex + groupPoints - 1) / (totalPoints - 1)) * 100;
+        const width = endPercent - startPercent;
 
-          {/* Tooltips for Child Steps (Only for Active Step) */}
-          {step.inProgress && step.children.length > 0 && childWrapperStyles[index] && (
-            <ChildStepWrapper
-              style={{
-                left: `${childWrapperStyles[index].left}px`,
-                width: `${childWrapperStyles[index].width}px`
-              }}
-            >
-              {step.children.map((childStep, childIndex) => (
-                <ChildStep key={childIndex}>
-                  <Tooltip
-                    renderAnchorElement={() => (
-                      <ChildStepIcon
-                        inProgress={childStep.inProgress}
-                        completed={childStep.completed}
-                      />
-                    )}
-                    size="small"
-                    tooltipSize="small"
-                    surface="light"
-                  >
-                    <ChildStepName>{childStep.name}</ChildStepName>
-                  </Tooltip>
-                </ChildStep>
-              ))}
-            </ChildStepWrapper>
-          )}
-        </StepBlock>
-      ))}
+        const groupContent = (
+          <StepGroup key={step.name}>
+            <StepCircle completed={step.completed} inProgress={step.inProgress} />
+            <StepLabel inProgress={step.inProgress}>{step.name}</StepLabel>
+
+            {step.children?.map((child) => (
+              <React.Fragment key={child.name}>
+                <StepCircle completed={child.completed} inProgress={child.inProgress} />
+                <Tooltip>{child.name}</Tooltip>
+              </React.Fragment>
+            ))}
+          </StepGroup>
+        );
+
+        const highlighted = (
+          <HighlightedBackground
+            key={`bg-${step.name}`}
+            isActive={isActiveGroup}
+            left={startPercent}
+            width={width}
+          />
+        );
+
+        currentPointIndex += groupPoints;
+        return (
+          <React.Fragment key={`group-${stepIndex}`}>
+            {highlighted}
+            <StepWrapper>{groupContent}</StepWrapper>
+          </React.Fragment>
+        );
+      })}
     </StepperContainer>
   );
-}
+};
 
 export default Stepper;
