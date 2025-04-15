@@ -1,119 +1,78 @@
 import React from 'react';
 import styled from 'styled-components';
+import { AlternateCheckMark, ToolTip } from '@vds/components';
 
 const StepperContainer = styled.div`
   position: relative;
-  margin: 24px 0;
+  margin: 20px 0;
 `;
 
 const StepLine = styled.div`
   position: absolute;
-  top: 18px;
+  top: 20px;
   left: 0;
   right: 0;
   height: 2px;
   background-color: black;
-  z-index: 0;
-`;
-
-const HighlightedBackground = styled.div`
-  position: absolute;
-  height: 4px;
-  background-color: ${({ isActive }) => (isActive ? '#D6F0FF' : 'transparent')};
-  top: 17px;
-  z-index: 0;
-  left: ${({ left }) => left}%;
-  width: ${({ width }) => width}%;
+  z-index: 1;
 `;
 
 const StepWrapper = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   position: relative;
+  justify-content: space-between;
   z-index: 2;
 `;
 
 const StepGroup = styled.div`
   display: flex;
   align-items: center;
-  position: relative;
+  background-color: ${({ active }) => (active ? '#e5f3ff' : 'transparent')};
+  border-radius: 8px;
+  padding: 10px 20px;
 `;
 
-const StepCircle = styled.div`
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-color: ${({ completed }) => (completed ? 'green' : 'white')};
-  border: 2px solid ${({ inProgress }) => (inProgress ? 'blue' : 'black')};
+const TooltipWrapper = styled.div`
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
 `;
 
-const StepLabel = styled.div`
-  margin-left: 8px;
-  margin-right: 24px;
-  font-weight: ${({ inProgress }) => (inProgress ? 'bold' : 'normal')};
-  white-space: nowrap;
-`;
-
-const Tooltip = styled.div`
-  margin: 0 12px;
-  font-size: 12px;
-  color: gray;
-  position: relative;
-  top: 24px;
-  white-space: nowrap;
-`;
-
-const Stepper = ({ steps }) => {
-  const totalPoints = steps.reduce((acc, step) => acc + (step.children?.length || 0) + 1, 0);
-
-  // Compute the percentage position of each point
-  let currentPointIndex = 0;
+function Stepper({ steps }) {
+  // Logic to highlight the first group as active
+  const activeStepIndex = steps.findIndex(step => step.inProgress);
 
   return (
     <StepperContainer>
       <StepLine />
+      <StepWrapper>
+        {steps.map((step, index) => {
+          const { completed, inProgress, children } = step;
+          const isActiveGroup = index === activeStepIndex;
 
-      {steps.map((step, stepIndex) => {
-        const isActiveGroup = step.inProgress;
-        const groupPoints = (step.children?.length || 0) + 1;
-        const startPercent = (currentPointIndex / (totalPoints - 1)) * 100;
-        const endPercent = ((currentPointIndex + groupPoints - 1) / (totalPoints - 1)) * 100;
-        const width = endPercent - startPercent;
-
-        const groupContent = (
-          <StepGroup key={step.name}>
-            <StepCircle completed={step.completed} inProgress={step.inProgress} />
-            <StepLabel inProgress={step.inProgress}>{step.name}</StepLabel>
-
-            {step.children?.map((child) => (
-              <React.Fragment key={child.name}>
-                <StepCircle completed={child.completed} inProgress={child.inProgress} />
-                <Tooltip>{child.name}</Tooltip>
-              </React.Fragment>
-            ))}
-          </StepGroup>
-        );
-
-        const highlighted = (
-          <HighlightedBackground
-            key={`bg-${step.name}`}
-            isActive={isActiveGroup}
-            left={startPercent}
-            width={width}
-          />
-        );
-
-        currentPointIndex += groupPoints;
-        return (
-          <React.Fragment key={`group-${stepIndex}`}>
-            {highlighted}
-            <StepWrapper>{groupContent}</StepWrapper>
-          </React.Fragment>
-        );
-      })}
+          return (
+            <StepGroup key={index} active={isActiveGroup}>
+              <AlternateCheckMark completed={completed} inProgress={inProgress} />
+              <TooltipWrapper>
+                <ToolTip content={step.name} />
+              </TooltipWrapper>
+              {children?.map((child, childIndex) => (
+                <React.Fragment key={childIndex}>
+                  <AlternateCheckMark
+                    completed={child.completed}
+                    inProgress={child.inProgress}
+                  />
+                  <TooltipWrapper>
+                    <ToolTip content={child.name} />
+                  </TooltipWrapper>
+                </React.Fragment>
+              ))}
+            </StepGroup>
+          );
+        })}
+      </StepWrapper>
     </StepperContainer>
   );
-};
+}
 
 export default Stepper;
