@@ -1,93 +1,151 @@
-import React, { useState, useEffect } from "react";
-import ReactFlow, { Background } from "reactflow";
-import "reactflow/dist/style.css";
-import "./NewKibanaDisplay.css";
+import React from 'react';
+import styled from 'styled-components';
+import AlternateCheckmark from '@vds/icons/alternate-checkmark';
+import { Tooltip } from '@vds/tooltips';
 
-const NewKibanaDisplay = ({ url }) => {
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Styled Components
+const StepperContainer = styled.div`
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 20px 0;
+`;
 
-  const fetchData = async () => {
-    try {
-      const response = await fetch(url);
-      const jsonData = await response.json();
+const StepWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+`;
 
-      const apiUrls = jsonData.data.map((item, index) => ({
-        id: `node-${index}`,
-        data: { label: item.api_Uri },
-        position: { x: 100, y: index * 150 },
-      }));
+const StepConnector = styled.div`
+  position: absolute;
+  top: 10px; /* middle of StepCircle */
+  left: 50%;
+  height: 2px;
+  width: 100%;
+  background-color: black;
+  z-index: 0;
+`;
 
-      const apiEdges = jsonData.data.map((item, index) => {
-        if (index < jsonData.data.length - 1) {
-          return {
-            id: `edge-${index}`,
-            source: `node-${index}`,
-            target: `node-${index + 1}`,
-          };
-        }
-        return null;
-      }).filter(Boolean);
+const StepCircle = styled.div`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: ${({ inProgress, completed }) =>
+    completed ? '#059669' : inProgress ? '#000000' : '#cbd5e1'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ${({ hasChildren }) => (hasChildren ? 'pointer' : 'default')};
+  z-index: 2;
+`;
 
-      setNodes(apiUrls);
-      setEdges(apiEdges);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const StepLabel = styled.span`
+  margin-top: 8px;
+  font-weight: ${({ inProgress }) => (inProgress ? 'bold' : 'normal')};
+  font-size: 12px;
+  text-align: center;
+`;
 
-  // This is the updated handleNodeClick function that will create horizontal child nodes
-  const handleNodeClick = (event, node) => {
-    const newNodes = ["1", "2", "3"].map((label, index) => {
-      const newNodeId = `${node.id}-child-${index}`;
-      return {
-        id: newNodeId,
-        data: { label },
-        // Position children horizontally to the right of the parent node
-        // The Y position remains the same as the parent for horizontal alignment
-        position: { 
-          x: node.position.x + 150 + (index * 150), // Spread horizontally with 150px spacing
-          y: node.position.y // Keep same Y as parent for horizontal alignment
-        },
-      };
-    });
+const ChildStepsContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  flex-wrap: wrap;
+`;
 
-    const newEdges = newNodes.map((newNode) => ({
-      id: `edge-${node.id}-${newNode.id}`,
-      source: node.id,
-      target: newNode.id,
-      // You can add styling for the edges here
-      style: { stroke: '#555' },
-      type: 'default', // You can use 'straight', 'step', 'smoothstep', 'bezier'
-    }));
+const ChildStepIcon = styled.div`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${({ inProgress, completed }) =>
+    completed ? '#059669' : inProgress ? '#000000' : '#cbd5e1'};
+`;
 
-    setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-    setEdges((prevEdges) => [...prevEdges, ...newEdges]);
-  };
+const ChildStepLabel = styled.span`
+  font-size: 10px;
+  margin-left: 4px;
+`;
 
-  useEffect(() => {
-    fetchData();
-  }, [url]);
+const ChildStep = styled.div`
+  display: flex;
+  align-items: center;
+`;
 
+function Stepper({ steps, show = true }) {
   return (
-    <div className="reactflow-container">
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodeClick={handleNodeClick}
-          fitView
-        >
-          <Background />
-        </ReactFlow>
-      )}
-    </div>
-  );
-};
+    <>
+      {show && (
+        <StepperContainer>
+          {steps.map((step, index) => {
+            const hasChildren = step.children && step.children.length > 0;
+            const isNotLast = index < steps.length - 1;
 
-export default NewKibanaDisplay;
+            return (
+              <StepWrapper key={index}>
+                {/* Render connecting line except for last step */}
+                {isNotLast && <StepConnector />}
+
+                {hasChildren ? (
+                  <Tooltip
+                    tooltipSize="small"
+                    surface="light"
+                    size="small"
+                    renderAnchorElement={() => (
+                      <StepCircle
+                        inProgress={step.inProgress}
+                        completed={step.completed}
+                        hasChildren={true}
+                      >
+                        {step.completed && (
+                          <AlternateCheckmark
+                            color="#ffffff"
+                            size="12px"
+                            surface="light"
+                          />
+                        )}
+                      </StepCircle>
+                    )}
+                  >
+                    <ChildStepsContainer>
+                      {step.children.map((childStep, childIndex) => (
+                        <ChildStep key={childIndex}>
+                          <ChildStepIcon
+                            inProgress={childStep.inProgress}
+                            completed={childStep.completed}
+                          />
+                          <ChildStepLabel>{childStep.name}</ChildStepLabel>
+                        </ChildStep>
+                      ))}
+                    </ChildStepsContainer>
+                  </Tooltip>
+                ) : (
+                  <StepCircle
+                    inProgress={step.inProgress}
+                    completed={step.completed}
+                    hasChildren={false}
+                  >
+                    {step.completed && (
+                      <AlternateCheckmark
+                        color="#ffffff"
+                        size="12px"
+                        surface="light"
+                      />
+                    )}
+                  </StepCircle>
+                )}
+
+                <StepLabel inProgress={step.inProgress}>{step.name}</StepLabel>
+              </StepWrapper>
+            );
+          })}
+        </StepperContainer>
+      )}
+    </>
+  );
+}
+
+export default Stepper;
