@@ -1,83 +1,243 @@
-import React from 'react';
-import styled from 'styled-components';
-import { AlternateCheckMark, ToolTip } from '@vds/components';
+import React, { useState } from 'react';
+import { Info } from 'lucide-react';
 
-const StepperContainer = styled.div`
-  position: relative;
-  margin: 40px 0;
-  padding: 0 20px;
-`;
-
-const StepWrapper = styled.div`
-  display: flex;
-  position: relative;
-  justify-content: space-between;
-  z-index: 2;
-`;
-
-const StepGroup = styled.div`
-  display: flex;
-  align-items: center;
-  background-color: ${({ active }) => (active ? '#e5f3ff' : 'transparent')};
-  border-radius: 8px;
-  padding: 10px 20px;
-`;
-
-const NameText = styled.div`
-  margin: 0 10px;
-  font-weight: 500;
-  white-space: nowrap;
-`;
-
-const TooltipWrapper = styled.div`
-  margin: 0 10px;
-  display: flex;
-  align-items: center;
-`;
-
-// Positioned line only between first and last checkmark
-const StepLine = styled.div`
-  position: absolute;
-  top: 28px; // adjust based on checkmark vertical alignment
-  left: ${({ startPercent }) => startPercent}%;
-  right: ${({ endPercent }) => endPercent}%;
-  height: 2px;
-  background-color: black;
-  z-index: 1;
-`;
-
-function Stepper({ steps }) {
-  const activeStepIndex = steps.findIndex(step => step.inProgress);
-  const totalSteps = steps.length;
-
-  // calculate horizontal line start and end
-  const startPercent = (100 / totalSteps) / 2;
-  const endPercent = (100 / totalSteps) / 2;
-
+// Main Stepper Component
+const SMBStepper = ({ steps }) => {
+  const [hoveredTooltip, setHoveredTooltip] = useState(null);
+  
   return (
-    <StepperContainer>
-      <StepLine startPercent={startPercent} endPercent={startPercent} />
-      <StepWrapper>
+    <div className="w-full max-w-6xl mx-auto">
+      {/* Stepper container */}
+      <div className="relative w-full flex items-center justify-between mb-8">
+        {/* Progress line */}
+        <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200"></div>
+        
+        {/* Step circles and connecting tooltips */}
         {steps.map((step, index) => {
-          const { completed, inProgress, children } = step;
-          const isActiveGroup = index === activeStepIndex;
-
+          // Determine status for styling
+          const isCompleted = step.completed;
+          const isInProgress = step.inProgress;
+          const isLast = index === steps.length - 1;
+          
+          // Style classes based on status
+          const circleClasses = isCompleted 
+            ? "bg-green-500 border-green-500 text-white" 
+            : isInProgress 
+              ? "bg-gray-400 border-gray-400 text-white" 
+              : "bg-white border-gray-300 text-gray-400";
+              
+          const labelClasses = isCompleted 
+            ? "text-green-500" 
+            : isInProgress 
+              ? "text-gray-700 font-medium" 
+              : "text-gray-400";
+              
+          // Get next step to determine the substeps to show between them
+          const nextStep = index < steps.length - 1 ? steps[index + 1] : null;
+          const hasSubsteps = step.children && step.children.length > 0;
+          
           return (
-            <StepGroup key={index} active={isActiveGroup}>
-              <AlternateCheckMark completed={completed} inProgress={inProgress} />
-              <NameText>{step.name}</NameText>
-
-              {children?.map((child, childIndex) => (
-                <TooltipWrapper key={childIndex}>
-                  <ToolTip content={child.name} />
-                </TooltipWrapper>
-              ))}
-            </StepGroup>
+            <React.Fragment key={index}>
+              {/* Step circle */}
+              <div className="relative flex flex-col items-center z-10">
+                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${circleClasses}`}>
+                  {isCompleted ? (
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <span></span>
+                  )}
+                </div>
+                
+                {/* Step label */}
+                <div className={`mt-2 text-xs font-medium ${labelClasses} text-center max-w-xs`}>
+                  {step.name}
+                </div>
+              </div>
+              
+              {/* Substep tooltips between this step and next step */}
+              {!isLast && hasSubsteps && (
+                <div className="relative flex-1 h-0.5 z-20">
+                  {step.children.map((substep, substepIndex) => {
+                    const totalSubsteps = step.children.length;
+                    const position = (substepIndex + 1) / (totalSubsteps + 1);
+                    
+                    const isSubstepCompleted = substep.completed;
+                    const isSubstepInProgress = substep.inProgress;
+                    
+                    const tooltipClasses = isSubstepCompleted
+                      ? "bg-green-500 border-green-500"
+                      : isSubstepInProgress
+                        ? "bg-gray-400 border-gray-400"
+                        : "bg-white border-gray-300";
+                    
+                    return (
+                      <div 
+                        key={substepIndex}
+                        className="absolute -top-1.5 cursor-pointer"
+                        style={{ left: `${position * 100}%` }}
+                        onMouseEnter={() => setHoveredTooltip(`${index}-${substepIndex}`)}
+                        onMouseLeave={() => setHoveredTooltip(null)}
+                      >
+                        <div className={`w-3 h-3 rounded-full border ${tooltipClasses}`}></div>
+                        
+                        {/* Tooltip content */}
+                        {hoveredTooltip === `${index}-${substepIndex}` && (
+                          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white shadow-lg rounded-md p-2 z-30 border border-gray-200 min-w-32 text-center">
+                            <span className="text-xs font-medium text-gray-700">{substep.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </React.Fragment>
           );
         })}
-      </StepWrapper>
-    </StepperContainer>
+      </div>
+    </div>
   );
-}
+};
 
-export default Stepper;
+// Example usage with data from image 2
+const App = () => {
+  // This resembles the data structure from your second image
+  const NEW_SMB_STEPS = [
+    {
+      name: 'Customer Information',
+      completed: false,
+      inProgress: true,
+      children: [
+        { name: 'Scan ID/OTP', inProgress: true, completed: false },
+        { name: 'Business information', inProgress: false, completed: false },
+        { name: 'Credit information', inProgress: false, completed: false },
+        { name: 'New business verification', inProgress: false, completed: false },
+        { name: 'Credit check', inProgress: false, completed: false },
+      ]
+    },
+    {
+      name: 'Review credit application',
+      completed: false,
+      inProgress: false,
+      children: []
+    },
+    {
+      name: 'SMB enrollment',
+      completed: false,
+      inProgress: false,
+      children: [
+        { name: 'DUNs Selection', inProgress: false, completed: false },
+        { name: 'PoC information', inProgress: false, completed: false },
+        { name: 'Account verification', inProgress: false, completed: false },
+        { name: 'Retail account agreement', inProgress: false, completed: false },
+        { name: 'Personal agreement', inProgress: false, completed: false },
+        { name: 'Profile creation', inProgress: false, completed: false },
+      ]
+    },
+    {
+      name: 'My Biz registration',
+      completed: false,
+      inProgress: false,
+      children: []
+    },
+    {
+      name: 'Enrollment complete',
+      completed: false,
+      inProgress: false,
+      children: []
+    }
+  ];
+
+  return (
+    <div className="p-6 bg-gray-50">
+      {/* Header with user info */}
+      <div className="bg-gray-100 p-4 rounded-t-lg mb-4 flex items-center">
+        <div className="w-10 h-10 bg-gray-300 rounded-md mr-3"></div>
+        <div>
+          <div className="font-medium">Yaswanth Varma</div>
+          <div className="text-xs text-gray-500">6 days ago - image.png</div>
+        </div>
+        <div className="ml-auto">
+          <span className="text-gray-400">×</span>
+        </div>
+      </div>
+      
+      {/* Main content area */}
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="mb-8">
+          <h3 className="font-semibold text-gray-700 mb-4">Customer Information</h3>
+          <SMBStepper steps={NEW_SMB_STEPS} />
+        </div>
+        
+        {/* Credit check question section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-800">Would the customer like to complete the credit check now?</h2>
+          <p className="text-gray-600 mb-8">(Recommend the customer to perform credit check before proceeding to get best fit offers)</p>
+          
+          <div className="flex gap-4">
+            <button className="px-6 py-3 border border-green-500 text-green-500 rounded hover:bg-green-50">
+              Yes<br/>Ready to Buy
+            </button>
+            <button className="px-6 py-3 border border-gray-300 text-gray-600 rounded hover:bg-gray-50">
+              No<br/>Get Quote
+            </button>
+          </div>
+        </div>
+        
+        {/* Customer info section */}
+        <div className="mt-16">
+          <h3 className="font-semibold text-xl text-gray-800 mb-6">Customer info</h3>
+          
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Sales Rep ID*</label>
+              <input type="text" value="ENG13" readOnly className="w-full bg-gray-50 border border-gray-300 rounded p-2 text-gray-700" />
+              <div className="text-xs text-gray-500 mt-1">TEAM IS NON-COMMISSIONABLE</div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Account type</label>
+              <div className="text-gray-700">Business</div>
+              
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-600 mb-1">Why SMB?</label>
+                <div className="flex items-center">
+                  <span className="text-gray-700">Info</span>
+                  <div className="ml-1 text-gray-400">
+                    <Info size={16} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Search by</label>
+              <select className="w-full bg-white border border-gray-300 rounded p-2 text-gray-700">
+                <option>Select</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <div className="border border-gray-300 rounded p-4">
+              <label className="block text-sm font-medium text-gray-600 mb-1">Scan ID</label>
+              <div className="text-xs text-gray-500">Only valid government issued ID should be captured.</div>
+              
+              <div className="mt-3 w-12 h-12 border border-gray-300 rounded flex items-center justify-center">
+                <span className="text-gray-400">ID</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-10 flex justify-center">
+            <button className="px-8 py-3 bg-gray-300 text-white rounded-md">Run Credit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
