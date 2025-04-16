@@ -1,123 +1,223 @@
 import React, { useState } from 'react';
+import { Upload, CheckCircle, X } from 'lucide-react';
 
-const VerticalStepperComponent = ({ steps }) => {
-  // This is a simple vertical stepper that matches the image shown
+const SMBEnrollment = () => {
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+    }
+  };
+
+  const handleFiles = (files) => {
+    const newFiles = Array.from(files).map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type
+    }));
+    
+    setUploadedFiles([...uploadedFiles, ...newFiles]);
+    // Simulate progress update
+    setProgress(prev => Math.min(prev + 10, 100));
+  };
+
+  const removeFile = (index) => {
+    const newFiles = [...uploadedFiles];
+    newFiles.splice(index, 1);
+    setUploadedFiles(newFiles);
+    
+    // Update progress if files are removed
+    if (newFiles.length === 0) {
+      setProgress(0);
+    }
+  };
+
+  const handleSaveDraft = () => {
+    alert('Draft saved!');
+  };
+
+  const handleCancel = () => {
+    if (confirm('Are you sure you want to cancel? Any unsaved progress will be lost.')) {
+      setUploadedFiles([]);
+      setProgress(0);
+    }
+  };
+
+  const handleComplete = () => {
+    if (uploadedFiles.length > 0) {
+      alert('Enrollment completed successfully!');
+    } else {
+      alert('Please upload required documents before completing enrollment.');
+    }
+  };
+
+  const businessDocuments = [
+    'Business Licence',
+    'Articles of Incorporation or Organization (First 3 pages if applicable)',
+    'Certificate of good Standing/ Formation',
+    'Registry of a Non-profit',
+    'Federal tax return/Schedule C',
+    '147-C Federal tax ID statement or CP-575',
+    'Recent landline or public utility bill (addressed to company)',
+    'Lease Agreement'
+  ];
+
+  const personalDocuments = [
+    'Front and back of your driver\'s licence or state ID',
+    'Passport picture page (Passport book)',
+    'Front and back of your passport card'
+  ];
+
   return (
-    <div className="w-full p-6 font-sans">
-      <div className="flex flex-col">
-        {/* All steps are displayed in a vertical list */}
-        {steps.map((parentStep, parentIndex) => {
-          // First render the parent step
-          return (
-            <React.Fragment key={parentIndex}>
-              <div className="text-gray-700 py-2 hover:bg-gray-100 cursor-pointer">
-                {parentStep.name}
-              </div>
-              
-              {/* If parent has children and is in progress, render all children immediately after */}
-              {parentStep.inProgress && parentStep.children && parentStep.children.map((childStep, childIndex) => (
-                <div 
-                  key={`${parentIndex}-${childIndex}`} 
-                  className="text-gray-700 py-2 pl-8 hover:bg-gray-100 cursor-pointer"
-                >
-                  {childStep.name}
-                </div>
-              ))}
-            </React.Fragment>
-          );
-        })}
-      </div>
-
-      {/* Demo content below stepper */}
-      <div className="mt-8 pt-4">
-        <h2 className="text-xl font-bold mb-4">Would the customer like to complete the credit check now?</h2>
-        <p className="text-sm text-gray-600 mb-6">(Recommend the customer to perform credit check before proceeding to get best fit offers)</p>
-        
-        <h3 className="text-lg font-bold mt-8 mb-4">Customer info</h3>
-        
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sales Rep ID</label>
-            <input 
-              type="text" 
-              className="w-full p-2 border border-gray-300 rounded" 
-              placeholder="Enter Sales Rep ID"
-            />
+    <div className="bg-gray-100 p-6 min-h-screen font-sans">
+      <div className="max-w-5xl mx-auto bg-white rounded shadow-sm">
+        <div className="p-6">
+          <h1 className="text-3xl font-light text-gray-600 mb-6">SMB Enrolment</h1>
+          
+          {/* Progress bar */}
+          <div className="mb-6">
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div 
+                className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" 
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="flex justify-end mt-1">
+              <span className="text-gray-500">{progress}%</span>
+            </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account type</label>
-            <input 
-              type="text" 
-              className="w-full p-2 border border-gray-300 rounded" 
-              placeholder="Business"
-            />
+          <h2 className="text-2xl text-gray-700 font-normal mb-2">Upload Business and personal details</h2>
+          <p className="text-gray-500 mb-6">Select and upload the files of your choice</p>
+          
+          <div className="flex gap-8">
+            <div className="flex-1">
+              {/* File upload area */}
+              <div 
+                className={`border-2 border-dashed rounded-md p-12 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <div className="text-gray-500 mb-3">
+                  <Upload size={36} strokeWidth={1} />
+                </div>
+                <p className="text-lg text-gray-600 mb-1">Choose a file or drag & drop it here</p>
+                <p className="text-sm text-gray-500 mb-3">Choose a file or drag & drop it here</p>
+                <label className="bg-white border border-gray-300 rounded-full px-6 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  Browse File
+                  <input type="file" className="hidden" onChange={handleFileChange} multiple />
+                </label>
+              </div>
+              
+              {/* File list */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-gray-600 mb-2">Uploaded files:</h3>
+                  <ul className="space-y-2">
+                    {uploadedFiles.map((file, index) => (
+                      <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <div className="flex items-center">
+                          <CheckCircle size={16} className="text-green-500 mr-2" />
+                          <span className="text-sm text-gray-700">{file.name}</span>
+                        </div>
+                        <button 
+                          onClick={() => removeFile(index)}
+                          className="text-gray-500 hover:text-red-500"
+                        >
+                          <X size={16} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            {/* Document requirements */}
+            <div className="w-72">
+              <div className="mb-6">
+                <h3 className="text-gray-600 font-medium mb-2">Business documents</h3>
+                <ul className="space-y-1">
+                  {businessDocuments.map((doc, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-gray-400 mr-2">•</span>
+                      <span className="text-sm text-gray-600">{doc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-gray-600 font-medium mb-2">Personal documents</h3>
+                <ul className="space-y-1">
+                  {personalDocuments.map((doc, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-gray-400 mr-2">•</span>
+                      <span className="text-sm text-gray-600">{doc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Search by</label>
-          <input 
-            type="text" 
-            className="w-full p-2 border border-gray-300 rounded" 
-            placeholder="Search..."
-          />
+        {/* Footer buttons */}
+        <div className="flex space-x-2 p-4 bg-gray-50 rounded-b">
+          <button 
+            onClick={handleComplete}
+            className="bg-gray-300 text-white px-6 py-2 rounded hover:bg-gray-400"
+          >
+            Complete enrolment
+          </button>
+          <button 
+            onClick={handleSaveDraft}
+            className="bg-gray-200 text-gray-600 px-6 py-2 rounded hover:bg-gray-300"
+          >
+            Save draft
+          </button>
+          <button 
+            onClick={handleCancel}
+            className="bg-white border border-gray-300 text-gray-600 px-6 py-2 rounded hover:bg-gray-50"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// Sample data matching the structure from the first image
-const NEW_SMB_STEPS = [
-  {
-    name: 'Customer information',
-    completed: false,
-    inProgress: true,
-    children: [
-      { name: 'Scan ID/OTP', inProgress: true, completed: false },
-      { name: 'Business information', inProgress: false, completed: false },
-      { name: 'Credit information', inProgress: false, completed: false },
-      { name: 'New business verification', inProgress: false, completed: false },
-      { name: 'Credit check', inProgress: false, completed: false },
-    ],
-  },
-  {
-    name: 'Review credit application',
-    inProgress: false,
-    completed: false,
-  },
-  {
-    name: 'SMB enrollment',
-    inProgress: false,
-    completed: false,
-    children: [
-      { name: 'DUNs Selection', inProgress: false, completed: false },
-      { name: 'PoC information', inProgress: false, completed: false },
-      { name: 'Account verification', inProgress: false, completed: false },
-      { name: 'Retail account agreement', inProgress: false, completed: false },
-      { name: 'Personal agreement', inProgress: false, completed: false },
-      { name: 'Profile creation', inProgress: false, completed: false },
-    ],
-  },
-  {
-    name: 'Mybiz registration',
-    inProgress: false,
-    completed: false,
-  },
-  {
-    name: 'Enrollment complete',
-    inProgress: false,
-    completed: false,
-  }
-];
-
-const App = () => {
-  return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <StepperComponent steps={NEW_SMB_STEPS} />
-    </div>
-  );
-};
-
-export default App;
+export default SMBEnrollment;
